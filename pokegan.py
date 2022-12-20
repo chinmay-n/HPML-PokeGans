@@ -290,7 +290,7 @@ def callfunc(rank, world_size):
         torch.save(modelG.state_dict(), './' + str(args.ex)+'G.pth')
         torch.save(modelD.state_dict(), './' + str(args.ex)+'D.pth')
         # print("Time taken for 200 epochs: ", end-start)
-        print("Time taken for" +str(epochs)+" epochs: ", end-start)
+        print("Time taken for " +str(epochs)+" epochs: ", end-start)
 
         plt.figure(figsize=(20,12))
         plt.plot(G_losses,label="Generator")
