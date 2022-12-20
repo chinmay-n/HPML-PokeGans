@@ -11,7 +11,6 @@ This two-stage process ultimately helps the Generator come up with better output
 </br>
 </br></br>
 </br></br>
-</br></br>
 </br>
 
 ## Usage:
@@ -20,7 +19,7 @@ Place the 256x256 Input images into the input folder.
 
 Run ```python pokegan.py``` to generate an output in the generated subfolder that will be created automatically. Image generation is performed at every epoch.
 </br>
-</br></br>
+The model is saved at the end of the provided number of epochs, and thus can be extended to be resumed from that point from the saved objects.
 </br></br>
 </br>
 ## Code Structure:
@@ -39,7 +38,6 @@ The main file pokegan.py is available in the parent directory. All code referenc
 available in the same directory as the main file, the code will execute without errors.
 </br>
 </br></br>
-</br></br>
 </br>
 ## Training Info:
 
@@ -54,12 +52,19 @@ The model is relatively compute heavy - following are the expected training time
 | V100     | 4     | 100     | 782.36           | 0.000179            | 0.000049                |
 
 </br>
-GPU utilization graph for RTX8000 with a 4 GPU setup over the first 200 seconds:
+GPU Compute Utilization Graph for RTX8000 with a 4 GPU setup over the first 200 seconds:
 
 ![image](https://user-images.githubusercontent.com/5692652/208686235-c93bebc4-4ed2-43cb-b44d-ed96f4f8d567.png)
 
 </br>
 
+GPU Memory Utilization for Graph for RTX8000 with a 4 GPU setup over the first 200 seconds:
+
+![image](https://user-images.githubusercontent.com/5692652/208692083-3cb774c5-7ec6-4a0b-8b92-c0983866914a.png)
+ 
+</br>
+</br>
+</br></br>
 
 ## References:
 
@@ -69,6 +74,8 @@ Adversarial Autoencoders. arXiv, 18 November 2015 (https://arxiv.org/abs/1511.05
 </br>
 PyTorch Distributed DataParallel (https://pytorch.org/docs/stable/notes/ddp.html)
 </br>
+
+</br></br></br></br>
 
 ## Contributors:
 
