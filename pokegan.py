@@ -1,3 +1,4 @@
+#Importing all the necessary files
 import os
 import numpy as np
 import torch
@@ -18,6 +19,7 @@ import torch.multiprocessing as mp
 import matplotlib.animation as animation
 from torch.nn.parallel import DistributedDataParallel as DDP
 
+#function to set up parameters for the DDP module
 def setup(rank, world_size):
     os.environ['MASTER_ADDR'] = 'localhost'
     os.environ['MASTER_PORT'] = '12355'
@@ -33,6 +35,7 @@ def unnorm(images, means, stds):
     stds = torch.tensor(stds).reshape(1,3,1,1)
     return images*stds+means
 
+#Function to display a batch of pokemon images from the dataset
 def show_batch(data_loader):
     for images, labels in data_loader:
         fig, ax = plt.subplots(figsize=(15, 15))
@@ -41,6 +44,7 @@ def show_batch(data_loader):
         ax.imshow(make_grid(unnorm_images[:batch_size], nrow=8).permute(1, 2, 0).clamp(0,1))
         break
 
+#Weight Initializer
 def weights_init(m):
     classname = m.__class__.__name__
     if classname.find('Conv') != -1:
@@ -51,6 +55,7 @@ def weights_init(m):
         
 seed_size = 16
 
+#Generator class to generate fake pokemon images
 class Generator(nn.Module):
     def __init__(self):
         super(Generator, self).__init__()
@@ -84,6 +89,7 @@ class Generator(nn.Module):
     def forward(self, input):
         return self.main(input)
 
+#Dicrimnator class to classify fake images
 class Discriminator(nn.Module):
     def __init__(self):
         super(Discriminator, self).__init__()
@@ -117,8 +123,10 @@ class Discriminator(nn.Module):
 
     def forward(self, input):
         return self.main(input)
-    
+
+#Setting up DDP module and training the models   
 def callfunc(rank, world_size):
+
     setup(rank, world_size)
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print("Device and Rank: ", device, rank)
@@ -140,6 +148,7 @@ def callfunc(rank, world_size):
     image_size = 64
     epochs = 500
 
+    #Applying transformations on data
     transf = transforms.Compose([
         transforms.Resize(image_size),
         transforms.CenterCrop(image_size),
@@ -150,7 +159,7 @@ def callfunc(rank, world_size):
     dataset = datasets.ImageFolder(root=path,transform=transf)
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, shuffle=True, num_workers=2, multiprocessing_context=mp.get_context('spawn'))
 
-    
+    #Setting up model environments
     modelG = Generator()
     modelG.to(device)
     modelG.apply(weights_init)
@@ -161,6 +170,7 @@ def callfunc(rank, world_size):
     modelD.apply(weights_init)
     modelD = torch.nn.DataParallel(modelD)
 
+    #Wrapping the model using DDP module 
     modelG = DDP(modelG, device_ids=device_ids)
     modelD = DDP(modelD, device_ids=device_ids)
 
@@ -183,7 +193,7 @@ def callfunc(rank, world_size):
     avg_g_time = 0.0
     avg_d_time = 0.0
     start = time.monotonic()
-    for epoch in range(epochs):
+    for epoch in range(epochs):     #Training begins here
         g_loss = 0.0
         d_loss = 0.0
         D_x = 0.0
@@ -197,6 +207,7 @@ def callfunc(rank, world_size):
             real_cpu = data[0].to(device)
             b_size = real_cpu.size(0)
             label = torch.full((b_size,), real_label, dtype=torch.float, device=device)
+
             # Discriminator start
             dis_start = time.monotonic()
             output = modelD(real_cpu).view(-1)
@@ -213,8 +224,9 @@ def callfunc(rank, world_size):
             errD = errD_real + errD_fake
             optimizerD.step()
             #Discriminator end
+
             dis_end = time.monotonic()
-            avg_d_time += (dis_end - dis_start)
+            avg_d_time += (dis_end - dis_start) #Average time spent in Generator
 
             #Generator start
             gen_start = time.monotonic()
@@ -227,7 +239,8 @@ def callfunc(rank, world_size):
             optimizerG.step()
             gen_end = time.monotonic()
             #Generator end
-            avg_g_time += (gen_end - gen_start)
+
+            avg_g_time += (gen_end - gen_start) #Average time spent in Dicriminator 
             
             g_loss += errG.item()
             d_loss += errD.item()
@@ -295,7 +308,7 @@ def callfunc(rank, world_size):
         fig = plt.figure(figsize=(8, 8))
         plt.axis("off")
         ims = [[plt.imshow(np.transpose(i,(1,2,0)), animated=True)] for i in img_list[::6]]
-        ani = animation.ArtistAnimation(fig, ims, interval=500, repeat_delay=1000, blit=True)
+        ani = animation.ArtistAnimation(fig, ims, interval=1000, repeat_delay=2000, blit=True)
         f = './'+str(args.ex)+'animation.gif'
         writergif = animation.PillowWriter(fps=30) 
         ani.save(f, writer=writergif)
@@ -309,7 +322,7 @@ def run_demo(callfunc, world_size):
 
 if __name__ == "__main__":
     n_gpus = torch.cuda.device_count()
-    #assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
+    assert n_gpus >= 2, f"Requires at least 2 GPUs to run, but got {n_gpus}"
     world_size = n_gpus
     print(world_size)
     run_demo(callfunc, world_size)
